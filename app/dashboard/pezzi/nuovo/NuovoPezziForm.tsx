@@ -35,7 +35,10 @@ function getMondayOfWeek(dateStr: string): string {
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
 }
 
 function getRatePerPezzo(
@@ -50,7 +53,8 @@ function getRatePerPezzo(
 
 export default function NuovoPezziForm({ userId, defaultTipo, commissioni }: Props) {
   const router = useRouter();
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const [date, setDate] = useState(today);
   const [tipo, setTipo] = useState<"street" | "evento">(
