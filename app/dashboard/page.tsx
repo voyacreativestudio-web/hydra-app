@@ -32,6 +32,7 @@ const BONUS_LABELS: Record<string, string> = {
 };
 
 const WEEK_DAYS = [
+  { label: "Lunedì",    offset: 0 },
   { label: "Martedì",   offset: 1 },
   { label: "Mercoledì", offset: 2 },
   { label: "Giovedì",   offset: 3 },
