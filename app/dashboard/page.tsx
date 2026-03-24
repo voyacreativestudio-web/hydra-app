@@ -122,8 +122,6 @@ export default async function DashboardPage() {
 
   const isLeader = LEADER_ROLES.includes(profile.role ?? "");
   const isAdmin = ADMIN_ROLES.includes(profile.role ?? "");
-  const teamId = (profile as unknown as { team_id: string | null }).team_id;
-
   const TEAM_PCT: Record<string, number> = { core_leader: 5, team_leader: 7.5, assistant_manager: 10 };
   const myPct = TEAM_PCT[profile.role ?? ""] ?? null;
 

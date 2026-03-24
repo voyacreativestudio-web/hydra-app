@@ -28,13 +28,6 @@ type Props = {
   sundayStr: string;
 };
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("it-IT", {
-    day: "numeric",
-    month: "short",
-  });
-}
-
 function formatWeekRange(mondayStr: string, sundayStr: string): string {
   const fmt = (s: string) =>
     new Date(s + "T00:00:00").toLocaleDateString("it-IT", {
@@ -68,7 +61,7 @@ export default function TeamView({
   function toggle(id: string) {
     setExpanded((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   }
