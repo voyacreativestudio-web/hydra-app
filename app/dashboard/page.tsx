@@ -136,27 +136,30 @@ export default async function DashboardPage() {
   const today = new Date();
   const monday = getMondayOfWeek(today);
   const mondayStr = toDateStr(monday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const sundayStr = toDateStr(sunday);
 
   // ── pezzi ──────────────────────────────────────────────────────────────────
+  // Filter by actual `data` date range (Mon–Sun) instead of settimana_inizio.
+  // This is robust against any historical mismatch in stored settimana_inizio values.
   const { data: pezziRaw } = await admin
     .from("pezzi")
     .select("id, data, numero_pezzi, fail, commissione")
     .eq("user_id", user.id)
-    .eq("settimana_inizio", mondayStr)
+    .gte("data", mondayStr)
+    .lte("data", sundayStr)
     .order("data");
 
   const pezzi: PezzoRow[] = pezziRaw ?? [];
 
   // ── bonus ──────────────────────────────────────────────────────────────────
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-
   const { data: bonusRaw } = await admin
     .from("bonus")
     .select("id, tipo, importo, verificato, data")
     .eq("user_id", user.id)
     .gte("data", mondayStr)
-    .lte("data", toDateStr(sunday))
+    .lte("data", sundayStr)
     .order("data", { ascending: false });
 
   const bonus: BonusRow[] = bonusRaw ?? [];
@@ -177,7 +180,8 @@ export default async function DashboardPage() {
         .from("pezzi")
         .select("user_id, numero_pezzi, fail, commissione")
         .in("user_id", memberIds)
-        .eq("settimana_inizio", mondayStr);
+        .gte("data", mondayStr)
+        .lte("data", sundayStr);
 
       teamMembers = membersRaw.map((m) => {
         const mp = (memberPezzi ?? []).filter((p) => p.user_id === m.id);
