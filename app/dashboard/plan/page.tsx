@@ -17,7 +17,7 @@ function getMondayOfWeek(date: Date): Date {
 }
 
 function toDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function addDays(d: Date, n: number): Date {
@@ -149,23 +149,23 @@ export default async function PlanPage({ searchParams }: Props) {
   let dayPlans: DayPlan[] = DAYS.map((d) => ({ ...d, events: [] }));
 
   try {
+    const weekDateStrs = new Set(DAYS.map((d) => d.dateStr));
+
     const { data: assignmentsRaw, error: assignErr } = await admin
-      .from("event_assignments")
-      .select("event_id, events(id, nome, indirizzo, lat, lng, data, orario_inizio, orario_fine, note)")
-      .eq("user_id", user.id)
-      .gte("events.data", DAYS[0].dateStr)
-      .lte("events.data", DAYS[DAYS.length - 1].dateStr);
+      .from("evento_assignments")
+      .select("event_id, eventi(id, nome, indirizzo, lat, lng, data, orario_inizio, orario_fine, note)")
+      .eq("user_id", user.id);
 
     if (!assignErr && assignmentsRaw) {
-      // Collect event IDs
+      // Collect events that fall within the current week
       const events: EventRow[] = assignmentsRaw
-        .map((a) => (a as unknown as { events: EventRow | null }).events)
-        .filter((e): e is EventRow => e !== null);
+        .map((a) => (a as unknown as { eventi: EventRow | null }).eventi)
+        .filter((e): e is EventRow => e !== null && weekDateStrs.has(e.data));
 
       if (events.length > 0) {
         // Fetch all assignments for these events to get coworkers
         const { data: allAssignments } = await admin
-          .from("event_assignments")
+          .from("evento_assignments")
           .select("event_id, profiles(id, full_name)")
           .in("event_id", events.map((e) => e.id))
           .neq("user_id", user.id);
@@ -192,7 +192,7 @@ export default async function PlanPage({ searchParams }: Props) {
       }
     }
   } catch {
-    // events/event_assignments tables don't exist yet — show empty state
+    // evento_assignments/eventi tables don't exist yet — show empty state
   }
 
   const isCurrentWeek = toDateStr(getMondayOfWeek(new Date())) === toDateStr(monday);

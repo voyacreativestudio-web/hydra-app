@@ -167,11 +167,12 @@ export default async function DashboardPage() {
 
   // ── team members ───────────────────────────────────────────────────────────
   let teamMembers: TeamMemberRow[] = [];
-  if (isLeader) {
+  if (isLeader && profile.team_id) {
     const { data: membersRaw } = await admin
       .from("profiles")
       .select("id, full_name, role")
-      .eq("referente_id", user.id)
+      .eq("team_id", profile.team_id)
+      .neq("id", user.id)
       .eq("status", "active")
       .order("full_name");
 
