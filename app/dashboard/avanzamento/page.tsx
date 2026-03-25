@@ -107,7 +107,7 @@ export default async function AvanzamentoPage() {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("full_name, role, status, team_id")
+    .select("full_name, role, status")
     .eq("id", user.id)
     .single();
 
@@ -155,12 +155,11 @@ export default async function AvanzamentoPage() {
   let referrals: ReferralRow[] = [];
   let weekTeamProfitto = 0;
 
-  if (["supporter", "core_leader", "team_leader"].includes(role) && profile.team_id) {
+  if (["supporter", "core_leader", "team_leader"].includes(role)) {
     const { data: refRaw } = await admin
       .from("profiles")
       .select("id, role")
-      .eq("team_id", profile.team_id)
-      .neq("id", user.id)
+      .eq("referente_id", user.id)
       .eq("status", "active");
 
     referrals = refRaw ?? [];
