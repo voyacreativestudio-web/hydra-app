@@ -13,7 +13,7 @@ export async function GET(
   const { data, error } = await admin!
     .from("evento_assignments")
     .select("id, user_id, profiles(full_name)")
-    .eq("evento_id", id)
+    .eq("event_id", id)
     .order("created_at");
 
   if (error) {
@@ -45,7 +45,7 @@ export async function PUT(
   const { error: deleteError } = await admin!
     .from("evento_assignments")
     .delete()
-    .eq("evento_id", id);
+    .eq("event_id", id);
 
   if (deleteError) {
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
@@ -54,7 +54,7 @@ export async function PUT(
   // Insert new assignments
   if (user_ids.length > 0) {
     const inserts = user_ids.map((user_id) => ({
-      evento_id: id,
+      event_id: id,
       user_id,
     }));
 

@@ -13,7 +13,7 @@ function getMondayOfWeek(date: Date): Date {
 }
 
 function toDateStr(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function addDays(date: Date, n: number): Date {
@@ -89,7 +89,7 @@ export default function EventiAdminPage() {
     setLoading(true);
     setError(null);
     const mondayStr = toDateStr(monday);
-    const res = await fetch(`/api/admin/eventi?week=${mondayStr}`);
+    const res = await fetch(`/api/admin/eventi?week=${mondayStr}`, { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       setEvents(data);
@@ -114,7 +114,7 @@ export default function EventiAdminPage() {
   }, [week, fetchEvents]);
 
   async function fetchAssignments(eventId: string) {
-    const res = await fetch(`/api/admin/eventi/${eventId}/assignments`);
+    const res = await fetch(`/api/admin/eventi/${eventId}/assignments`, { cache: "no-store" });
     if (res.ok) {
       const data: Assignment[] = await res.json();
       setAssignments((prev) => ({ ...prev, [eventId]: data }));

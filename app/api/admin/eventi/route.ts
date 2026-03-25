@@ -28,8 +28,11 @@ export async function GET(req: NextRequest) {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
 
-  const mondayStr = monday.toISOString().split("T")[0];
-  const sundayStr = sunday.toISOString().split("T")[0];
+  function toLocalDateStr(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  const mondayStr = toLocalDateStr(monday);
+  const sundayStr = toLocalDateStr(sunday);
 
   const { data, error } = await admin!
     .from("eventi")
