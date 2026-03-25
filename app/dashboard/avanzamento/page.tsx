@@ -434,6 +434,22 @@ export default async function AvanzamentoPage() {
           </div>
         )}
 
+        {/* Crea squadra CTA — shown when criteria met for squad-creating roles */}
+        {overallProgress >= 100 && ["supporter", "core_leader", "team_leader"].includes(role) && (
+          <a
+            href="/dashboard/crea-squadra"
+            className="flex items-center justify-between px-5 py-4 rounded-2xl bg-[#1a1a1a] text-white hover:bg-[#333] active:scale-[0.98] transition-all"
+          >
+            <div>
+              <p className="text-sm font-bold">🎉 Criterio raggiunto!</p>
+              <p className="text-xs text-white/60 mt-0.5">Crea la tua squadra</p>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </a>
+        )}
+
       </div>
     </div>
   );

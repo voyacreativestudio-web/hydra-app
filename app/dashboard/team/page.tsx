@@ -27,8 +27,11 @@ function getMondayOfWeek(date: Date): Date {
 }
 
 function toDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+// TL and above see direct reports + their CL's direct reports
+const TWO_LEVEL_ROLES = ["team_leader", "assistant_manager", "partner_manager", "manager", "owner"];
 
 export type MemberSummary = {
   id: string;
@@ -64,23 +67,46 @@ export default async function TeamPage() {
   const today = new Date();
   const monday = getMondayOfWeek(today);
   const mondayStr = toDateStr(monday);
-  const sundayStr = toDateStr(new Date(monday.getTime() + 6 * 86400000));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const sundayStr = toDateStr(sunday);
 
-  // ── Parallel fetches ───────────────────────────────────────────────────────
-  const [
-    { data: membersRaw },
-    { data: lookup },
-    { data: myPezziRaw },
-  ] = await Promise.all([
-    profile.team_id
-      ? admin
-          .from("profiles")
-          .select("id, full_name, role, team_id")
-          .eq("team_id", profile.team_id)
-          .eq("status", "active")
-          .neq("id", user.id)
-          .order("full_name")
-      : Promise.resolve({ data: [] as { id: string; full_name: string | null; role: string | null; team_id: string | null }[] }),
+  const isTwoLevel = TWO_LEVEL_ROLES.includes(profile.role ?? "");
+
+  // ── Fetch members (sequential: TL needs CL ids first) ─────────────────────
+  type ProfileRow = { id: string; full_name: string | null; role: string | null };
+
+  // Always fetch direct reports (referente_id = current user)
+  const { data: directReports } = await admin
+    .from("profiles")
+    .select("id, full_name, role")
+    .eq("referente_id", user.id)
+    .eq("status", "active")
+    .order("full_name");
+
+  let allMembers: ProfileRow[] = directReports ?? [];
+
+  // TL+: also include members under each CL in direct reports
+  if (isTwoLevel && allMembers.length > 0) {
+    const clIds = allMembers
+      .filter((m) => m.role === "core_leader")
+      .map((m) => m.id);
+
+    if (clIds.length > 0) {
+      const { data: clReports } = await admin
+        .from("profiles")
+        .select("id, full_name, role")
+        .in("referente_id", clIds)
+        .eq("status", "active")
+        .order("full_name");
+      allMembers = [...allMembers, ...(clReports ?? [])];
+    }
+  }
+
+  const members = allMembers;
+
+  // ── Commissioni lookup + own pezzi in parallel ─────────────────────────────
+  const [{ data: lookup }, { data: myPezziRaw }] = await Promise.all([
     admin
       .from("commissioni_lookup")
       .select("mix_value, profitto_team_1, profitto_team_2")
@@ -93,8 +119,6 @@ export default async function TeamPage() {
       .lte("data", sundayStr),
   ]);
 
-  const members = membersRaw ?? [];
-
   // ── Team member pezzi ──────────────────────────────────────────────────────
   let memberPezziRaw: {
     user_id: string; data: string; numero_pezzi: number;
@@ -106,7 +130,8 @@ export default async function TeamPage() {
       .from("pezzi")
       .select("user_id, data, numero_pezzi, fail, commissione, mix_value, tipo")
       .in("user_id", members.map((m) => m.id))
-      .eq("settimana_inizio", mondayStr)
+      .gte("data", mondayStr)
+      .lte("data", sundayStr)
       .order("data");
     memberPezziRaw = data ?? [];
   }
