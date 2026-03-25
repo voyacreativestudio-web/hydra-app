@@ -34,7 +34,7 @@ function getMondayOfWeek(date: Date): Date {
 }
 
 function toDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function clamp(v: number, max: number): number {
@@ -107,7 +107,7 @@ export default async function AvanzamentoPage() {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("full_name, role, status")
+    .select("full_name, role, status, team_id")
     .eq("id", user.id)
     .single();
 
@@ -118,6 +118,9 @@ export default async function AvanzamentoPage() {
   const today = new Date();
   const monday = getMondayOfWeek(today);
   const mondayStr = toDateStr(monday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const sundayStr = toDateStr(sunday);
 
   // ── Current month start ────────────────────────────────────────────────────
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -128,7 +131,8 @@ export default async function AvanzamentoPage() {
     .from("pezzi")
     .select("numero_pezzi, commissione")
     .eq("user_id", user.id)
-    .eq("settimana_inizio", mondayStr);
+    .gte("data", mondayStr)
+    .lte("data", sundayStr);
 
   const weekPezzi    = (weekPezziRaw ?? []).reduce((s, p) => s + p.numero_pezzi, 0);
   const weekGuadagno = (weekPezziRaw ?? []).reduce((s, p) => s + Number(p.commissione), 0);
@@ -151,11 +155,12 @@ export default async function AvanzamentoPage() {
   let referrals: ReferralRow[] = [];
   let weekTeamProfitto = 0;
 
-  if (["supporter", "core_leader", "team_leader"].includes(role)) {
+  if (["supporter", "core_leader", "team_leader"].includes(role) && profile.team_id) {
     const { data: refRaw } = await admin
       .from("profiles")
       .select("id, role")
-      .eq("referente_id", user.id)
+      .eq("team_id", profile.team_id)
+      .neq("id", user.id)
       .eq("status", "active");
 
     referrals = refRaw ?? [];
@@ -167,7 +172,8 @@ export default async function AvanzamentoPage() {
           .from("pezzi")
           .select("numero_pezzi, mix_value, tipo")
           .in("user_id", referrals.map((r) => r.id))
-          .eq("settimana_inizio", mondayStr),
+          .gte("data", mondayStr)
+          .lte("data", sundayStr),
         admin
           .from("commissioni_lookup")
           .select("mix_value, profitto_team_1, profitto_team_2"),
@@ -190,9 +196,8 @@ export default async function AvanzamentoPage() {
   }
 
   // ── Derived counts ─────────────────────────────────────────────────────────
-  const LEADER_ROLES_LIST = ["leader", "supporter", "core_leader", "team_leader", "assistant_manager", "partner_manager", "manager", "owner"];
-  const leaderCount     = referrals.filter((r) => LEADER_ROLES_LIST.includes(r.role ?? "")).length;
-  const coreLeaderCount = referrals.filter((r) => ["core_leader", "team_leader", "assistant_manager", "partner_manager", "manager", "owner"].includes(r.role ?? "")).length;
+  const leaderCount     = referrals.filter((r) => ["leader", "supporter", "core_leader", "team_leader", "assistant_manager"].includes(r.role ?? "")).length;
+  const coreLeaderCount = referrals.filter((r) => ["core_leader", "team_leader", "assistant_manager"].includes(r.role ?? "")).length;
 
   // ── Level configs ──────────────────────────────────────────────────────────
   // Overall progress: for OR-conditions (starter/leader), take the max bar.
