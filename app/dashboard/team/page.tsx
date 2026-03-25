@@ -72,13 +72,15 @@ export default async function TeamPage() {
     { data: lookup },
     { data: myPezziRaw },
   ] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("id, full_name, role")
-      .eq("team_id", profile.team_id)
-      .neq("id", user.id)
-      .eq("status", "active")
-      .order("full_name"),
+    profile.team_id
+      ? admin
+          .from("profiles")
+          .select("id, full_name, role, team_id")
+          .eq("team_id", profile.team_id)
+          .eq("status", "active")
+          .neq("id", user.id)
+          .order("full_name")
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null; role: string | null; team_id: string | null }[] }),
     admin
       .from("commissioni_lookup")
       .select("mix_value, profitto_team_1, profitto_team_2")
@@ -87,7 +89,8 @@ export default async function TeamPage() {
       .from("pezzi")
       .select("commissione")
       .eq("user_id", user.id)
-      .eq("settimana_inizio", mondayStr),
+      .gte("data", mondayStr)
+      .lte("data", sundayStr),
   ]);
 
   const members = membersRaw ?? [];
