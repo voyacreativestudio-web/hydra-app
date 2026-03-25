@@ -1,27 +1,21 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
+import AdminShell from "./AdminShell";
 
 export const dynamic = "force-dynamic";
 
 const ADMIN_ROLES = ["hr", "manager", "owner", "partner_manager", "assistant_manager"];
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const admin = getAdminClient();
   const { data: profile } = await admin
     .from("profiles")
-    .select("role")
+    .select("role, full_name")
     .eq("id", user.id)
     .single();
 
@@ -29,5 +23,18 @@ export default async function AdminLayout({
     redirect("/dashboard");
   }
 
-  return <>{children}</>;
+  const { count: pendingCount } = await admin
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+
+  return (
+    <AdminShell
+      fullName={profile.full_name ?? user.email ?? "Admin"}
+      role={profile.role ?? ""}
+      pendingCount={pendingCount ?? 0}
+    >
+      {children}
+    </AdminShell>
+  );
 }

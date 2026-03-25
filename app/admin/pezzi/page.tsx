@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 function getMondayOfWeek(date: Date): Date {
@@ -14,7 +13,10 @@ function getMondayOfWeek(date: Date): Date {
 }
 
 function toDateStr(date: Date): string {
-  return date.toISOString().split("T")[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function addDays(date: Date, n: number): Date {
@@ -55,12 +57,14 @@ export default function PezziAdminPage() {
     const supabase = createClient();
     const mondayStr = toDateStr(monday);
 
+    const sundayStr = toDateStr(addDays(monday, 6));
     let query = supabase
       .from("pezzi")
       .select(
         "id, data, numero_pezzi, fail, mix_value, tipo, commissione, settimana_inizio, profiles(full_name)"
       )
-      .eq("settimana_inizio", mondayStr)
+      .gte("data", mondayStr)
+      .lte("data", sundayStr)
       .order("data")
       .order("created_at");
 
@@ -115,36 +119,9 @@ export default function PezziAdminPage() {
   const sundayStr = toDateStr(addDays(weekMonday, 6));
 
   return (
-    <div className="min-h-screen bg-[#f8f8f8] pb-16">
-      {/* Header */}
-      <header className="sticky top-0 bg-white border-b border-[#1a1a1a]/6 z-30">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <Link
-            href="/admin"
-            className="flex items-center gap-1.5 text-sm font-medium text-[#1a1a1a]/60 hover:text-[#1a1a1a] transition-colors"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            Admin
-          </Link>
-          <span className="text-[#1a1a1a]/20">/</span>
-          <span className="text-sm font-semibold text-[#1a1a1a]">
-            Pezzi & Fail
-          </span>
-        </div>
-      </header>
-
-      <div className="max-w-5xl mx-auto px-4 pt-6 space-y-4">
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-[#1a1a1a]">Pezzi & Fail</h1>
+      <div className="space-y-4">
         {error && (
           <div className="bg-[#f2d3a3]/40 border border-[#f2d3a3] rounded-xl px-4 py-3 text-sm text-[#1a1a1a]">
             {error}
